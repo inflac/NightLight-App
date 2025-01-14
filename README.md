@@ -1,4 +1,4 @@
-# NightLight
+# NightLight App
 
 The NightLight app is designed to interact with the [Nightlight API](https://github.com/inflac/NightLight),
 which allows updating the status of a NightLine through simple GET requests.
@@ -8,8 +8,8 @@ In order to get the API-Key, it's ciphertext, the IV etc. in the correct format,
 provisioning script. Available as python script, bash script or .exe. The provisioning program
 will ask you to enter the following values:
 * Preferred password (Needed on first APP startup)
-* API-Key (Script can also generate on for you)
-* IV for AES (Script can also generate on for you)
+* API-Key (Script can also generate one for you)
+* IV for AES (Script can also generate one for you)
 
 Once you entered the values, the script will generate everything you need to enter into the .env file.
 An example of the .env file, named `.env.example` can be found in the base directory. Rename this
