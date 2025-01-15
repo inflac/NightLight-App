@@ -26,7 +26,7 @@ main() {
   gen_api_key=false
 
   # Get the application password
-  read -p "Enter the preferred APP Password: " app_pw
+  read -r -p "Enter the preferred APP Password: " app_pw
 
   if [[ -z "$app_pw" ]]; then
     echo "Password length can't be 0. You need to set a password"
@@ -39,7 +39,7 @@ main() {
   app_pw_hash=$(hash_sha256 "$app_pw")
 
   # Get the API-Key from the user or generate a random one
-  read -p "Enter your API-Key (leave blank for a random one): " api_key
+  read -r -p "Enter your API-Key (leave blank for a random one): " api_key
   if [[ -z "$api_key" ]]; then
     api_key="nl-$(openssl rand -base64 2045)"
     gen_api_key=true
@@ -48,7 +48,7 @@ main() {
   fi
 
   # Get or generate the IV (Initialization Vector)
-  read -p "Enter your IV (base64 encoded) (leave blank for random): " iv
+  read -r -p "Enter your IV (base64 encoded) (leave blank for random): " iv
   if [[ -z "$iv" ]]; then
     iv=$(generate_random_iv)
   elif [[ ${#iv} -lt 24 ]]; then

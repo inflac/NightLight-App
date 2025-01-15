@@ -26,7 +26,7 @@ Now that your app is provisioned, you are ready to build it. Therefor, run the f
 1. `flutter clean`
 2. `flutter pub get`
 3. `dart run flutter_launcher_icons`
-4`flutter build apk --release`
+4. `flutter build apk --release`
 You will find the apk in `build/app/outputs/flutter-apk/app-release.apk`
 
 ## Design
