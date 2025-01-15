@@ -7,19 +7,18 @@ import base64
 import sys
 import os
 
-# Function to encrypt using AES-256 in CTR mode with PKCS7 padding
-def encrypt_aes_256_ctr_with_padding(plain_text: str, key: str, iv:str = None):
-    # Create a Counter for CTR mode
-    ctr = Counter.new(128, initial_value=int.from_bytes(base64.b64decode(iv), byteorder='big'))
+# Function to encrypt using AES-256 in CBC mode with PKCS7 padding
+def encrypt_aes_256_cbc_with_padding(ptx: str, key: str, iv: str = None):
+    print()
+    
+    # Create the AES cipher in CBC mode
+    cipher = AES.new(key, AES.MODE_CBC, iv=base64.b64decode(iv))
 
-    # Create the AES cipher in CTR mode
-    cipher = AES.new(key, AES.MODE_CTR, counter=ctr)
-
-    # Apply PKCS7 padding, as AES CTR mode doesn't support padding natively
-    padded_plain_text = pad(plain_text.encode('utf-8'), AES.block_size)
+    # Apply PKCS7 padding, as AES CBC requires ptx is a multiple of the blocklength
+    padded_ptx = pad(ptx.encode('utf-8'), AES.block_size) # Defaults to PKCS#7
 
     # Encrypt the text
-    encrypted = cipher.encrypt(padded_plain_text)
+    encrypted = cipher.encrypt(padded_ptx)
 
     # Return the encrypted text and the IV (Base64 encoded)
     return base64.b64encode(encrypted).decode('utf-8')
@@ -54,17 +53,17 @@ def main():
     except Exception:
         print("The IV needs to be a 16-Byte value, encoded as base64")
 
-    ctx = encrypt_aes_256_ctr_with_padding(api_key, app_pw, iv)
+    ctx = encrypt_aes_256_cbc_with_padding(api_key, app_pw, iv)
 
     print("\n\n#### Provisioning Data ####\n")
 
     if gen_api_key:
         print(f"Generated API-Key: {api_key}")
-    print(f"API_KEY_HASH: {sha256(api_key.encode("utf-8")).hexdigest()}")
     print(f"ENC_API_KEY: {ctx}")
     print(f"AES_IV: {iv}")
 
-if __name__ == "__main__":
-    main()
     if sys.argv[0][-4:] == ".exe":
         os.system("pause")
+
+if __name__ == "__main__":
+    main()

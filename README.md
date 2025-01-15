@@ -25,13 +25,14 @@ the assets folder. Ensure the images quality is good enough (E.g. >400px x >400p
 Now that your app is provisioned, you are ready to build it. Therefor, run the following commands:
 1. `flutter clean`
 2. `flutter pub get`
-3. `flutter build apk --release`
+3. `dart run flutter_launcher_icons`
+4`flutter build apk --release`
 You will find the apk in `build/app/outputs/flutter-apk/app-release.apk`
 
 ## Design
 
 ## Security
-The app protects the API key by storing it encrypted within the source code, using AES-256 CTR with #PKCs7.
+The app protects the API key by storing it encrypted within the source code, using AES-256 CBC with PKCS#7 padding.
 On first app start, the user is required to enter a password in order to decrypt the API-Key.
 The decrypted key is then stored using androids 'secure-storage'. The next time the app gets opened,
 the API-Key is read from the secure-storage without the user being asked for the password again.

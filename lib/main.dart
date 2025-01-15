@@ -46,10 +46,7 @@ class PasswordProtectedAppState extends State<PasswordProtectedApp> {
   // Get the API_URL from .env file
   final String _apiUrl = dotenv.get('API_URL');
 
-  // SHA256-Hash(Hex) of the plaintext API-Key to verify it's decryption
-  final String _apiKeyHash = dotenv.get("API_KEY_HASH");
-
-  // Encrypted API-Key (AES-256, Base64-encoded)
+  // Get the encrypted API-Key (AES-256, Base64-encoded)
   final String _encryptedApiKey = dotenv.get("ENC_API_KEY");
 
   @override
@@ -63,7 +60,7 @@ class PasswordProtectedAppState extends State<PasswordProtectedApp> {
   Future<void> checkStoredApiKey() async {
     String? apiKey = await _secureStorage.read(key: 'api_key', aOptions: _getAndroidOptions());
 
-    if (apiKey !=  null && apiKey.isNotEmpty) {
+    if (apiKey != null && apiKey.isNotEmpty) {
       setState(() {
         _isUnlocked = true;
         _decryptedApiKey = apiKey;
@@ -83,36 +80,62 @@ class PasswordProtectedAppState extends State<PasswordProtectedApp> {
     );
   }
 
-  // Decrypt the API-Key with the entered password
-  String _decryptApiKey(String password) {
-    try {
-      final pwHash = hex.encode(sha256.convert(utf8.encode(password)).bytes);
-      final key = encrypt.Key.fromBase16(pwHash);
-      final iv = encrypt.IV(base64Decode(dotenv.get("AES_IV")));
-      final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.ctr));
+  // Helper for constant time comparison of two byte arrays
+  bool _constantTimeEqual(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
 
-      return encrypter.decrypt64(_encryptedApiKey, iv: iv);
+    var result = 0;
+    for (var i = 0; i < a.length; i++) {
+      result |= a[i] ^ b[i];
+    }
+    return result == 0;
+  }
+
+  // Encrypt or decrypt a plaintext with a given password
+  String _encdecApiKey(String ptx, String password, bool encNotDec) {
+    try {
+      // Generate a SHA-256 hash from the password for key derivation
+      final pwHash = sha256.convert(utf8.encode(password)).bytes;
+      final key = encrypt.Key.fromBase16(hex.encode(pwHash));
+
+      // Retrieve IV from environment variable (16 bytes for AES-CBC)
+      final iv = encrypt.IV(base64Decode(dotenv.get("AES_IV")));
+
+      // Initialize encrypter with AES in CBC mode
+      final encrypter = encrypt.Encrypter(
+          encrypt.AES(key, mode: encrypt.AESMode.cbc, padding: "PKCS7")
+      );
+
+      if (encNotDec) {
+        // Encrypt provided plaintext
+        final encrypted = encrypter.encrypt(ptx, iv: iv);
+        return encrypted.base64;
+      } else {
+        // Decrypt provided base64 ciphertext
+        return encrypter.decrypt64(ptx, iv: iv);
+      }
     } catch (e) {
       return ""; // Return an empty string in case of an error
     }
   }
 
-  // Check if the decrypted API-Key is correct, by hashing and comparing it
-  // with _apiKeyHash
+  // Check if the decrypted API-Key is correct, by encrypting the decrypted API-Key
+  // again and comparing it with the stored API-Key
   void _validatePassword(String inputPassword) {
-    final decryptedApiKey = _decryptApiKey(inputPassword);
+    final decryptedApiKey = _encdecApiKey(_encryptedApiKey, inputPassword, false);
 
     if (decryptedApiKey.isNotEmpty) {
-      final hashedApiKey =
-      sha256.convert(utf8.encode(decryptedApiKey)).toString();
+      final encDecryptedApiKey = _encdecApiKey(decryptedApiKey, inputPassword, true);
 
-      if (hashedApiKey == _apiKeyHash) {
-        setState(() {
-          _isUnlocked = true;
-          _decryptedApiKey = decryptedApiKey;
-        });
-        storeNewApiKey(_decryptedApiKey);
-        return;
+      if (encDecryptedApiKey.isNotEmpty) {
+        if (_constantTimeEqual(utf8.encode(encDecryptedApiKey), utf8.encode(_encryptedApiKey))){
+          setState(() {
+            _isUnlocked = true;
+            _decryptedApiKey = decryptedApiKey;
+          });
+          storeNewApiKey(_decryptedApiKey);
+          return;
+        }
       }
     }
 

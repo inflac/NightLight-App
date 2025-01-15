@@ -5,20 +5,20 @@ generate_random_iv() {
   openssl rand -base64 16
 }
 
-# Function to hash a password with sha256
+# Function to hash a string with sha256
 hash_sha256() {
   echo -n "$1" | sha256sum | awk '{print $1}'
 }
 
-# Function to encrypt the API-Key with AES-256 CTR (requires OpenSSL)
+# Function to encrypt the API-Key with AES-256 CBC (requires OpenSSL)
 encrypt_api_key() {
   local key=$1
-  local iv=$2
+  local iv=$(echo "$2" | base64 -d | xxd -p | tr -d '\n')
   local api_key=$3
 
-  # Apply PKCS7 padding (OpenSSL's enc command does this automatically for block ciphers)
-  # Encrypt the API-Key with AES-256-CTR mode
-  echo -n "$api_key" | openssl enc -aes-256-ctr -base64 -K "$key" -iv "$iv"
+  # Apply PKCS#7 padding (OpenSSL's enc command does this automatically for block ciphers)
+  # Encrypt the API-Key with AES-256-CBC mode
+  echo -n "$api_key" | openssl enc -aes-256-cbc -a -K "$key" -iv "$iv"
 }
 
 # Main function
@@ -59,15 +59,11 @@ main() {
   # Encrypt the API-Key
   encrypted_api_key=$(encrypt_api_key "$app_pw_hash" "$iv" "$api_key")
 
-  # Hash the API-Key
-  api_key_hash=&(hash_sha256 "$api_key")
-
   # Print the results
   echo -e "\n\n#### Provisioning Data ####\n"
   if $gen_api_key; then
     echo "Generated API-Key: $api_key"
   fi
-  echo "API_KEY_HASH: " $api_key_hash
   echo "ENC_API_KEY: $encrypted_api_key"
   echo "AES_IV: $iv"
 }
